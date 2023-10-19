@@ -1,0 +1,186 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "VIRTA"
+schemes:
+  - "http"
+  - "https"
+securityDefinitions:
+  Bearer:
+    type: "apiKey"
+    name: "Authorization"
+    in: "header"
+paths:
+  /station/create:
+    post:
+      tags:
+        - "Create a Station"
+      summary: "Create a Station"
+      operationId: "CreateStation"
+      consumes:
+        - "application/json"
+      security:
+        - Bearer: []
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/CreateStation"
+      responses:
+        200:
+          description: "Successful operation"
+        206:
+          description: "Partial content"
+        400:
+          description: "Bad request"
+        404:
+          description: "Resource not found"
+        406:
+          description: "Access denied"
+        416:
+          description: "Requested range not satisfiable"
+        500:
+          description: "Internal server error"
+  /station/update/{id}:
+    put:
+      tags:
+        - "Update Station"
+      summary: "Update Station"
+      operationId: "UpdateStation"
+      security:
+        - Bearer: []
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "path"
+          name: "id"
+          type: "string"
+          required: true
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/UpdateStation"
+      responses:
+        200:
+          description: "Successful operation"
+        400:
+          description: "Bad request"
+        404:
+          description: "Resource not found"
+        406:
+          description: "Access denied"
+        500:
+          description: "Internal server error"
+  /station/delete/{id}:
+    delete:
+      tags:
+        - "Delete Station"
+      summary: "Delete Station"
+      operationId: "Delete"
+      security:
+        - Bearer: [ ]
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "path"
+          name: "id"
+          type: "string"
+          required: true
+      responses:
+        200:
+          description: "Successful operation"
+        400:
+          description: "Bad request"
+        404:
+          description: "Resource not found"
+        406:
+          description: "Access denied"
+        500:
+          description: "Internal server error"
+  /station/get:
+    get:
+      tags:
+        - "Get Station in Radius and By Company"
+      summary: "Get Station in Radius and By Company"
+      operationId: "Read"
+      security:
+        - Bearer: [ ]
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "query"
+          name: "latitude"
+          type: number
+          required: false
+        - in: "query"
+          name: "longitude"
+          type: number
+          required: false
+        - in: "query"
+          name: "radius"
+          type: integer
+          required: false
+        - in: "query"
+          name: "company_id"
+          type: integer
+          required: false
+      responses:
+        200:
+          description: "Successful operation"
+        400:
+          description: "Bad request"
+        404:
+          description: "Resource not found"
+        406:
+          description: "Access denied"
+        500:
+          description: "Internal server error"
+definitions:
+  CreateStation:
+    type: "object"
+    properties:
+      name:
+        type: "string"
+      latitude:
+        type: number
+      longitude:
+        type: number
+      parent_company_id:
+        type: string
+      address:
+        type: string
+    example:
+      name: "Station 1a"
+      latitude: 1.1
+      longitude: 1.1
+      company_id: "3"
+      address: "Royal Street Nr.1"
+  UpdateStation:
+    type: "object"
+    properties:
+      name:
+        type: "string"
+      latitude:
+        type: number
+      longitude:
+        type: number
+      company_id:
+        type: string
+      address:
+        type: string
+    example:
+      name: "Station 1a"
+      latitude: 1.1
+      longitude: 1.1
+      company_id: "3"
+      address: "Royal Street Nr.1"

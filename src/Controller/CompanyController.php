@@ -3,6 +3,7 @@
 // src/Controller/CompanyController.php
 namespace App\Controller;
 
+use App\Service\CompanyService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,54 +16,39 @@ class CompanyController extends AbstractController
 {
     private $entityManager;
     private $companyRepository;
+    private $companyService;
 
-    public function __construct(EntityManagerInterface $entityManager, CompanyRepository $companyRepository)
+    public function __construct(EntityManagerInterface $entityManager, CompanyRepository $companyRepository, CompanyService $companyService)
     {
         $this->entityManager = $entityManager;
         $this->companyRepository = $companyRepository;
+        $this->companyService = $companyService;
     }
 
-    #[Route('/company/create', name: 'create_company')]
+    #[Route('/company/create', name: 'create_company',  methods: ['POST'])]
     public function createCompany(Request $request): JsonResponse
     {
-        $requestData = json_decode($request->getContent(), true);
+        $data = json_decode($request->getContent(), true);
 
-        foreach ($requestData as $data) {
+        $this->companyService->createCompany($data);
 
-
-            $company = new Company();
-            $company->setName($data['name']);
-
-            if (isset($data['parent_company_id'])) {
-                $parentCompany = $this->companyRepository->findCompany($data['parent_company_id']);
-                if ($parentCompany) {
-                    $company->setParentCompany($parentCompany);
-                }
-            }
-
-            $this->entityManager->persist($company);
-            $this->entityManager->flush();
-        }
-        return $this->json(['company' => $company]);
+        return $this->json(['Company created !'], 200);
     }
 
-    /**
-     * Read a single company by ID.
-     */
+    #[Route('/company/get/{id}', name: 'get_company',  methods: ['GET'])]
     public function getCompany(int $id): JsonResponse
     {
-        $company = $this->companyRepository->findCompany($id);
+        /** @var Company $company */
+        $company = $this->entityManager->getRepository(Company::class)->find($id);
 
         if (!$company) {
             return $this->json(['error' => 'Company not found'], 404);
         }
 
-        return $this->json(['company' => $company]);
+        return $this->json(['company' => $company->getName()]);
     }
 
-    /**
-     * Update a company by ID.
-     */
+    #[Route('/company/update/{id}', name: 'update_company',  methods: ['PUT'])]
     public function updateCompany(Request $request, int $id): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -86,12 +72,10 @@ class CompanyController extends AbstractController
 
         $this->entityManager->flush();
 
-        return $this->json(['company' => $company]);
+        return $this->json(['message' => 'Company updated']);
     }
 
-    /**
-     * Delete a company by ID.
-     */
+    #[Route('/company/delete', name: 'delete_company',  methods: ['DELETE'])]
     public function deleteCompany(int $id): JsonResponse
     {
         $company = $this->companyRepository->findCompany($id);

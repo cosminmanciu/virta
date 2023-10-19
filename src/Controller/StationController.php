@@ -14,7 +14,12 @@ use App\Service\ChargingStationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 use Doctrine\ORM\EntityManagerInterface;
+use ApiPlatform\Core\Annotation\ApiResource;
 
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Swagger\Annotations as SWG;
+use Symfony\Component\Serializer\Annotation\Groups;
 class StationController extends AbstractController
 {
     private $chargingStationService;
@@ -23,6 +28,11 @@ class StationController extends AbstractController
 
     private $entityManager;
 
+    /**
+     * @param ChargingStationService $chargingStationService
+     * @param CompanyRepository $companyRepository
+     * @param EntityManagerInterface $entityManager
+     */
     public function __construct(
         ChargingStationService $chargingStationService,
         CompanyRepository      $companyRepository,
@@ -34,95 +44,67 @@ class StationController extends AbstractController
         $this->entityManager = $entityManager;
     }
 
-    #[Route('/station/get', name: 'get_stations')]
+    #[Route('station/get', name: 'get_stations',methods: ['GET'])]
     public function getStationsInRadius(Request $request): JsonResponse
     {
-        $latitude = $request->query->get('latitude');
-        $longitude = $request->query->get('longitude');
+        $stationList = [];
+        $latitude = $request->query->get('latitude') ?? null;
+        $longitude = $request->query->get('longitude') ?? null;
         $radiusKm = $request->query->get('radius', 10);
-        $companyId = $request->query->get('company_id');
+        $companyId = $request->query->get('company_id') ?? null;
 
         $stations = $this->chargingStationService->getStationsInRadius($latitude, $longitude, $radiusKm, $companyId);
 
-        return $this->json(['stations' => $stations]);
+        /** @var Station $station */
+        foreach ($stations as $station) {
+            $stationList[$station->getId()] = [
+                'name' => $station->getName(),
+                'latitude' => $station->getLatitude(),
+                'longitude' => $station->getLongitude(),
+                'company' => [
+                    'id' => $station->getCompany()->getId(),
+                    'name' => $station->getCompany()->getName(),
+                    //'parent' => $station->getCompany() ? ->getParentCompany()->getName(),
+                ],
+                'address' => $station->getAddress(),
+            ];
+
+        }
+
+
+        return $this->json(['stations' => $stationList]);
     }
 
-//    /**
-//     * Get charging stations for a company and its children.
-//     */
-//    public function getStationsForCompany(Request $request, int $companyId): JsonResponse
-//    {
-//        $company = $this->getDoctrine()->getRepository(Company::class)->find($companyId);
-//
-//        if (!$company) {
-//            return $this->json(['error' => 'Company not found'], 404);
-//        }
-//
-//        $stations = $this->companyStationService->getStationsForCompanyAndChildren($company);
-//
-//        return $this->json(['stations' => $stations]);
-//    }
-    #[Route('/station/create', name: 'station_company')]
+    #[Route('station/create', name: 'create_station', methods: ['POST'])]
     public function createStation(Request $request): JsonResponse
     {
         $requestDta = json_decode($request->getContent(), true);
-        foreach ($requestDta as $data) {
-            $station = new Station();
-            $station->setName($data['name']);
 
-            if (isset($data['company_id'])) {
-                $company = $this->companyRepository->findCompany($data['company_id']);
-                if ($company) {
-                    $station->setCompany($company);
-                }
-            }
-            $station->setAddress($data['address']);
-            $station->setLatitude($data['latitude']);
-            $station->setLongitude($data['longitude']);
 
-            $this->entityManager->persist($station);
-            $this->entityManager->flush();
-        }
-        return $this->json(['station' => $station]);
+        $station = $this->chargingStationService->createStation($requestDta);
+
+        return $this->json(['Station created'], 200);
     }
 
-    /**
-     * Read a single station by ID.
-     */
-//    public function getStation(int $id): JsonResponse
-//    {
-//        $station = $this->getDoctrine()->getRepository(Station::class)->find($id);
-//
-//        if (!$station) {
-//            return $this->json(['error' => 'Station not found'], 404);
-//        }
-//
-//        return $this->json(['station' => $station]);
-//    }
 
-    /**
-     * Update a station by ID.
-     */
+    #[Route('station/update/{id}', name: 'update_station', methods: ['PUT'])]
     public function updateStation(Request $request, int $id): JsonResponse
     {
-        // Implement station update logic here
-    }
-
-    /**
-     * Delete a station by ID.
-     */
-    public function deleteStation(int $id): JsonResponse
-    {
+        $requestData = json_decode($request->getContent(), true);
         $station = $this->entityManager->getRepository(Station::class)->find($id);
 
         if (!$station) {
             return $this->json(['error' => 'Station not found'], 404);
         }
+        $this->chargingStationService->updateStation($requestData, $station);
+        return $this->json(['sucess' => 'Station updated'], 200);
+    }
 
-        $entityManager = $this->entityManager->getManager();
-        $entityManager->remove($station);
-        $entityManager->flush();
+    #[Route('station/delete/{id}', name: 'delete_station', methods: ['DELETE'])]
+    public function deleteStation(int $id): JsonResponse
+    {
+        $this->chargingStationService->deleteStation($id);
 
-        return $this->json(['message' => 'Station deleted']);
+        return $this->json(['message' => 'Station deleted'], 200);
     }
 }

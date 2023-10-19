@@ -3,36 +3,46 @@
 namespace App\Service;
 
 use App\Entity\Company;
+use App\Repository\CompanyRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 class CompanyService
 {
     private $entityManager;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    private $companyRepository;
+
+    /**
+     * @param EntityManagerInterface $entityManager
+     * @param CompanyRepository $companyRepository
+     */
+    public function __construct(EntityManagerInterface $entityManager, CompanyRepository $companyRepository)
     {
         $this->entityManager = $entityManager;
+        $this->companyRepository = $companyRepository;
+
     }
 
-    public function getStationsForCompanyAndChildren(Company $company): array
+    /**
+     * @param array $data
+     * @return Company
+     */
+    public function createCompany(array $data): Company
     {
-        $stations = [];
-        $this->fetchStationsForCompanyAndChildren($company, $stations);
-        return $stations;
-    }
+        $company = new Company();
+        $company->setName($data['name']);
 
-    private function fetchStationsForCompanyAndChildren(Company $company, array &$stations)
-    {
-// Fetch stations for the current company
-        $companyStations = $company->getStations();
-        foreach ($companyStations as $station) {
-            $stations[] = $station;
+        if (isset($data['parent_company_id'])) {
+            $parentCompany = $this->companyRepository->findCompany($data['parent_company_id']);
+            if ($parentCompany) {
+                $company->setParentCompany($parentCompany);
+            }
         }
 
-// Recursively fetch stations for child companies
-        $childCompanies = $this->entityManager->getRepository(Company::class)->findBy(['parentCompany' => $company]);
-        foreach ($childCompanies as $childCompany) {
-            $this->fetchStationsForCompanyAndChildren($childCompany, $stations);
-        }
+        $this->entityManager->persist($company);
+        $this->entityManager->flush();
+
+
+        return $company;
     }
 }

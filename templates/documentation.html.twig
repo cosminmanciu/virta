@@ -1,0 +1,41 @@
+{% block stylesheets %}
+    <link rel="stylesheet" type="text/css" href="{{ ('assets/swagger/css/swagger-ui.css') }}" >
+{% endblock %}
+
+{% block topScripts %}
+    <script src="{{ ('assets/swagger/js/swagger-ui-bundle.js') }}"> </script>
+    <script src="{{ ('assets/swagger/js/swagger-ui-standalone-preset.js') }}"> </script>
+{% endblock %}
+
+{% block pageContent %}
+    <div id="swagger-ui"></div>
+{% endblock %}
+
+{% block bottomScripts %}
+    <script>
+        window.onload = function() {
+            const swg = SwaggerUIBundle({
+                urls: [
+                    {url: "{{ ('assets/swagger/doc/company.yaml') }}", name:"Company"},
+                    {url: "{{ ('assets/swagger/doc/station.yaml') }}", name:"Station"},
+                ],
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                displayRequestDuration:true,
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                validatorUrl: null,
+                layout: "StandaloneLayout",
+                jsonEditor: true,
+                displayOperationId: true
+            });
+
+            window.swg = swg
+        }
+    </script>
+{% endblock %}

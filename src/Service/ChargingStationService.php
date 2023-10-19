@@ -4,19 +4,105 @@
 namespace App\Service;
 
 use App\Entity\Company;
+use App\Repository\CompanyRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Station;
 
 class ChargingStationService
 {
+    /** @var EntityManagerInterface  */
     private $entityManager;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    /**
+     * @var CompanyRepository
+     */
+    private $companyRepository;
+
+    /**
+     * @param EntityManagerInterface $entityManager
+     * @param CompanyRepository $companyRepository
+     */
+    public function __construct(EntityManagerInterface $entityManager, CompanyRepository $companyRepository)
     {
         $this->entityManager = $entityManager;
+        $this->companyRepository = $companyRepository;
     }
 
-    public function getStationsInRadius(float $latitude, float $longitude, float $radiusKm, int $companyId): array
+    /**
+     * @param array $data
+     * @return Station
+     */
+    public function createStation(array $data): Station
+    {
+            $station = new Station();
+            $station->setName($data['name']);
+
+            if (isset($data['company_id'])) {
+                $company = $this->companyRepository->findCompany($data['company_id']);
+                if ($company) {
+                    $station->setCompany($company);
+                }
+            }
+            $station->setAddress($data['address']);
+            $station->setLatitude($data['latitude']);
+            $station->setLongitude($data['longitude']);
+
+            $this->entityManager->persist($station);
+            $this->entityManager->flush();
+
+        return $station;
+    }
+
+    /**
+     * @param array $data
+     * @param Station $station
+     * @return Station
+     */
+    public function updateStation(array $data, Station $station): Station
+    {
+        $station->setName($data['name'] ?? null);
+
+        if (isset($data['company_id'])) {
+            $company = $this->companyRepository->findCompany($data['company_id']);
+            if ($company) {
+                $station->setCompany($company);
+            }
+        }
+        $station->setAddress($data['address'] ?? null);
+        $station->setLatitude($data['latitude'] ?? null);
+        $station->setLongitude($data['longitude'] ?? null);
+
+        $this->entityManager->persist($station);
+        $this->entityManager->flush();
+
+        return $station;
+    }
+
+    /**
+     * @param int $id
+     * @return Station
+     */
+    public function deleteStation(int $id): Station
+    {
+        $station = $this->entityManager->getRepository(Station::class)->find($id);
+
+        if (!$station) {
+            return $this->json(['error' => 'Station not found'], 404);
+        }
+
+        $entityManager = $this->entityManager->getManager();
+        $entityManager->remove($station);
+        $entityManager->flush();
+    }
+
+    /**
+     * @param float|null $latitude
+     * @param float|null $longitude
+     * @param float|null $radiusKm
+     * @param int|null $companyId
+     * @return array
+     */
+    public function getStationsInRadius(?float $latitude, ?float $longitude, ?float $radiusKm, ?int $companyId): array
     {
         $stations = $this->fetchStationsForCompanyAndChildrenRecursive($latitude, $longitude, $radiusKm, $companyId);
 
@@ -29,15 +115,24 @@ class ChargingStationService
         return $stations;
     }
 
-    private function fetchStationsForCompanyAndChildrenRecursive(float $latitude, float $longitude, float $radiusKm, int $companyId): array
+    /**
+     * @param float|null $latitude
+     * @param float|null $longitude
+     * @param float|null $radiusKm
+     * @param int|null $companyId
+     * @return array
+     */
+    private function fetchStationsForCompanyAndChildrenRecursive(?float $latitude, ?float $longitude, ?float $radiusKm, ?int $companyId): array
     {
-        $stations = $this->fetchStationsForCompany($companyId);
-
-        $childCompanyIds = $this->getChildCompanyIds($companyId);
-
-        foreach ($childCompanyIds as $childCompanyId) {
-            $childCompanyStations = $this->fetchStationsForCompanyAndChildrenRecursive($latitude, $longitude, $radiusKm, $childCompanyId);
-            $stations = array_merge($stations, $childCompanyStations);
+        if (isset($companyId)) {
+            $stations = $this->fetchStationsForCompany($companyId);
+            $childCompanyIds = $this->getChildCompanyIds($companyId);
+            foreach ($childCompanyIds as $childCompanyId) {
+                $childCompanyStations = $this->fetchStationsForCompanyAndChildrenRecursive($latitude, $longitude, $radiusKm, $childCompanyId);
+                $stations = array_merge($stations, $childCompanyStations);
+            }
+        } else {
+            $stations = $this->fetchAllStations();
         }
 
         return array_filter($stations, function ($station) use ($latitude, $longitude, $radiusKm) {
@@ -46,6 +141,13 @@ class ChargingStationService
         });
     }
 
+    /**
+     * @param $lat1
+     * @param $lon1
+     * @param $lat2
+     * @param $lon2
+     * @return float|int
+     */
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
     {
         $earthRadius = 6371;
@@ -55,7 +157,6 @@ class ChargingStationService
         $lat2 = deg2rad($lat2);
         $lon2 = deg2rad($lon2);
 
-        // Haversine formula
         $dLat = $lat2 - $lat1;
         $dLon = $lon2 - $lon1;
 
@@ -67,6 +168,10 @@ class ChargingStationService
 
     }
 
+    /**
+     * @param int $companyId
+     * @return mixed
+     */
     private function fetchStationsForCompany(int $companyId)
     {
         $repository = $this->entityManager->getRepository(Station::class);
@@ -76,6 +181,16 @@ class ChargingStationService
             ->setParameter('companyId', $companyId)
             ->getQuery()
             ->getResult();
+
+        return $stations;
+    }
+
+    /**
+     * @return mixed
+     */
+    private function fetchAllStations()
+    {
+        $stations = $this->entityManager->getRepository(Station::class)->findAll();
 
         return $stations;
     }

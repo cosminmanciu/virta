@@ -1,0 +1,156 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "VIRTA"
+schemes:
+  - "http"
+  - "https"
+securityDefinitions:
+  Bearer:
+    type: "apiKey"
+    name: "Authorization"
+    in: "header"
+paths:
+  /company/create:
+    post:
+      tags:
+        - "Create a Company"
+      summary: "Create a Company"
+      operationId: "CreateCompany"
+      consumes:
+        - "application/json"
+      security:
+        - Bearer: []
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/CreateCompany"
+      responses:
+        200:
+          description: "Successful operation"
+        206:
+          description: "Partial content"
+        400:
+          description: "Bad request"
+        404:
+          description: "Resource not found"
+        406:
+          description: "Access denied"
+        416:
+          description: "Requested range not satisfiable"
+        500:
+          description: "Internal server error"
+  /company/update/{id}:
+    put:
+      tags:
+        - "Update Company"
+      summary: "Update Company"
+      operationId: "UpdateCompany"
+      security:
+        - Bearer: []
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "path"
+          name: "id"
+          type: "string"
+          required: true
+        - in: "body"
+          name: "body"
+          required: true
+          schema:
+            $ref: "#/definitions/UpdateCompany"
+      responses:
+        200:
+          description: "Successful operation"
+        400:
+          description: "Bad request"
+        404:
+          description: "Resource not found"
+        406:
+          description: "Access denied"
+        500:
+          description: "Internal server error"
+  /company/delete/{id}:
+    delete:
+      tags:
+        - "Delete Company"
+      summary: "Delete Company"
+      operationId: "Delete"
+      security:
+        - Bearer: [ ]
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "path"
+          name: "id"
+          type: "string"
+          required: true
+      responses:
+        200:
+          description: "Successful operation"
+        400:
+          description: "Bad request"
+        404:
+          description: "Resource not found"
+        406:
+          description: "Access denied"
+        500:
+          description: "Internal server error"
+  /company/get/{id}:
+    get:
+      tags:
+        - "Read Company"
+      summary: "Read Company"
+      operationId: "Read"
+      security:
+        - Bearer: [ ]
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "path"
+          name: "id"
+          type: "string"
+          required: true
+      responses:
+        200:
+          description: "Successful operation"
+        400:
+          description: "Bad request"
+        404:
+          description: "Resource not found"
+        406:
+          description: "Access denied"
+        500:
+          description: "Internal server error"
+definitions:
+  CreateCompany:
+    type: "object"
+    properties:
+      name:
+        type: "string"
+      parent_company_id:
+        type: integer
+    example:
+      name: "Company A"
+      parent_company_id: null
+  UpdateCompany:
+    type: "object"
+    properties:
+      name:
+        type: "string"
+      parent_company_id:
+        type: integer
+    example:
+      name: "Company A"
+      parent_company_id: 1

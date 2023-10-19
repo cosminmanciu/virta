@@ -8,17 +8,26 @@ class CompanyRepository
 {
     private $entityManager;
 
+    /**
+     * @param EntityManagerInterface $entityManager
+     */
     public function __construct(EntityManagerInterface $entityManager)
     {
         $this->entityManager = $entityManager;
     }
 
-    public function findCompany(int $companyId)
+    /**
+     * @param int $companyId
+     * @return void
+     */
+    public function findCompany(int $companyId): Company|array
     {
         $company = $this->entityManager->getRepository(Company::class)->find($companyId);
 
         if (!$company) {
-            die('---------');
+            return [
+                'message' => 'Company not found !'
+            ];
         }
 
         return $company;
